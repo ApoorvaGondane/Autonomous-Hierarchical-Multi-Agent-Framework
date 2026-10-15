@@ -1,0 +1,29 @@
+
+
+services:
+  api:
+    build: .
+    container_name: product_agent_api
+    command: uvicorn src.api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./chroma_db:/app/chroma_db
+      - ./results:/app/results
+    env_file:
+      - .env
+    extra_hosts:
+      # Critical for laptops: bridges container to the host's local Ollama service
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build: .
+    container_name: product_agent_ui
+    command: streamlit run src/app.py --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    environment:
+      # Tells Streamlit to hit the API container within the Docker network
+      - API_URL=http://api:8000/api/v1/plan/generate
